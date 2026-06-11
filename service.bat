@@ -303,6 +303,8 @@ set "WDFILTER_PATH=%~dp0windivert.filter\"
 set "TASK_NAME=Zapret2_Autostart"
 set "RUNNER_PATH=%~dp0utils\run_hidden.vbs"
 set "WSCRIPT_PATH=%SystemRoot%\System32\wscript.exe"
+set "TASK_LAUNCHER_DIR=%ProgramData%\Zapret2"
+set "TASK_LAUNCHER_PATH=!TASK_LAUNCHER_DIR!\zapret2_autostart.cmd"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
@@ -351,7 +353,24 @@ if not exist "!WSCRIPT_PATH!" (
     goto menu
 )
 
-set "TASK_ACTION=!WSCRIPT_PATH! \"!RUNNER_PATH!\" \"!selectedFile!\""
+if not exist "!TASK_LAUNCHER_DIR!" mkdir "!TASK_LAUNCHER_DIR!" >nul 2>&1
+if not exist "!TASK_LAUNCHER_DIR!" (
+    call :PrintRed "Failed to create launcher folder: !TASK_LAUNCHER_DIR!"
+    pause
+    goto menu
+)
+
+(
+    echo @echo off
+    echo "!WSCRIPT_PATH!" "!RUNNER_PATH!" "!selectedFile!"
+) > "!TASK_LAUNCHER_PATH!"
+if not exist "!TASK_LAUNCHER_PATH!" (
+    call :PrintRed "Failed to create launcher script: !TASK_LAUNCHER_PATH!"
+    pause
+    goto menu
+)
+
+set "TASK_ACTION=%ComSpec% /c \"\"!TASK_LAUNCHER_PATH!\"\""
 schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
 set "TASK_ERROR_FILE=%~dp0utils\zapret_task_error.tmp"
 if exist "!TASK_ERROR_FILE!" del /f /q "!TASK_ERROR_FILE!" >nul 2>&1
