@@ -9,6 +9,12 @@ targetPath = WScript.Arguments(0)
 
 Dim fso
 Set fso = CreateObject("Scripting.FileSystemObject")
+If Not IsAbsolutePath(targetPath) Then
+    Dim scriptDir
+    scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
+    targetPath = fso.BuildPath(fso.GetParentFolderName(scriptDir), targetPath)
+End If
+
 If Not fso.FileExists(targetPath) Then
     WScript.Quit 2
 End If
@@ -24,3 +30,19 @@ Set shell = CreateObject("WScript.Shell")
 
 shell.Run Chr(34) & targetPath & Chr(34), 0, False
 WScript.Quit 0
+
+Function IsAbsolutePath(path)
+    If Len(path) >= 2 Then
+        If Mid(path, 2, 1) = ":" Then
+            IsAbsolutePath = True
+            Exit Function
+        End If
+    End If
+    If Len(path) >= 2 Then
+        If Left(path, 2) = "\\" Then
+            IsAbsolutePath = True
+            Exit Function
+        End If
+    End If
+    IsAbsolutePath = False
+End Function

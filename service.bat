@@ -351,7 +351,7 @@ if not exist "!WSCRIPT_PATH!" (
     goto menu
 )
 
-set "TASK_ACTION=!WSCRIPT_PATH! \"!RUNNER_PATH!\" \"!targetPath!\""
+set "TASK_ACTION=!WSCRIPT_PATH! \"!RUNNER_PATH!\" \"!selectedFile!\""
 schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
 set "TASK_ERROR_FILE=%~dp0utils\zapret_task_error.tmp"
 if exist "!TASK_ERROR_FILE!" del /f /q "!TASK_ERROR_FILE!" >nul 2>&1
