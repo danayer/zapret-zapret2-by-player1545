@@ -32,11 +32,15 @@ shell.Run Chr(34) & targetPath & Chr(34), 0, False
 WScript.Quit 0
 
 Function IsAbsolutePath(path)
-    If Len(path) >= 2 Then
-        If Mid(path, 2, 1) = ":" Then
+    If Len(path) >= 3 Then
+        Dim driveLetter
+        driveLetter = UCase(Left(path, 1))
+        If InStr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", driveLetter) > 0 And Mid(path, 2, 1) = ":" And (Mid(path, 3, 1) = "\" Or Mid(path, 3, 1) = "/") Then
             IsAbsolutePath = True
             Exit Function
         End If
+    End If
+    If Len(path) >= 2 Then
         If Left(path, 2) = "\\" Then
             IsAbsolutePath = True
             Exit Function

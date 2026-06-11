@@ -419,7 +419,6 @@ echo   Task: !TASK_NAME!
 echo ========================================
 echo.
 echo The config will run automatically on Windows startup.
-echo Immediate start was attempted and may require next logon if it failed.
 echo Make sure to run service.bat as Administrator at least once.
 echo.
 pause
