@@ -276,15 +276,22 @@ reg delete "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-zapret2-by-
 
 sc query "WinDivert" >nul 2>&1
 if !errorlevel!==0 (
-    net stop "WinDivert"
-
+    net stop "WinDivert" >nul 2>&1
+    sc delete "WinDivert" >nul 2>&1
     sc query "WinDivert" >nul 2>&1
     if !errorlevel!==0 (
-        sc delete "WinDivert"
+        call :PrintYellow "WinDivert is marked for deletion and will be removed after release/reboot"
     )
 )
-net stop "WinDivert14" >nul 2>&1
-sc delete "WinDivert14" >nul 2>&1
+sc query "WinDivert14" >nul 2>&1
+if !errorlevel!==0 (
+    net stop "WinDivert14" >nul 2>&1
+    sc delete "WinDivert14" >nul 2>&1
+    sc query "WinDivert14" >nul 2>&1
+    if !errorlevel!==0 (
+        call :PrintYellow "WinDivert14 is marked for deletion and will be removed after release/reboot"
+    )
+)
 
 pause
 goto menu
@@ -379,6 +386,12 @@ if !errorlevel!==0 (
     echo.
     call :PrintGreen "Task Scheduler autostart created successfully"
     echo Task name: !TASK_NAME!
+    schtasks /run /TN "!TASK_NAME!" >nul 2>&1
+    if !errorlevel!==0 (
+        call :PrintYellow "[!] Could not start task immediately. It will run on next logon."
+    ) else (
+        call :PrintGreen "[OK] Task started immediately"
+    )
 ) else (
     echo.
     call :PrintRed "Failed to create Task Scheduler autostart"
@@ -405,7 +418,7 @@ echo   Config: !selectedFile!
 echo   Task: !TASK_NAME!
 echo ========================================
 echo.
-echo The config will run automatically on Windows startup.
+echo The config will run automatically on Windows startup and was started now if possible.
 echo Make sure to run service.bat as Administrator at least once.
 echo.
 pause
