@@ -144,8 +144,13 @@ if !errorlevel!==0 (
 )
 
 if !taskFound!==1 (
+    set "configFound=0"
     for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-zapret2-by-player1545 2^>nul') do (
         echo Config file: %%B
+        set "configFound=1"
+    )
+    if !configFound!==0 (
+        call :PrintYellow "[!] Config file record was not found in registry"
     )
 )
 
@@ -246,6 +251,7 @@ if exist "!shortcutPath!" (
     del /f /q "!shortcutPath!" >nul 2>&1
     if exist "!shortcutPath!" (
         call :PrintYellow "Legacy startup shortcut found but not removed"
+        call :PrintYellow "Check file permissions or close apps that may lock the shortcut"
     ) else (
         if !taskRemoved!==0 (
             call :PrintGreen "Legacy startup shortcut removed"
@@ -322,6 +328,17 @@ if not defined selectedFile (
 )
 
 set "targetPath=%~dp0!selectedFile!"
+if not exist "!targetPath!" (
+    call :PrintRed "Selected config file not found: !targetPath!"
+    pause
+    goto menu
+)
+for %%F in ("!targetPath!") do set "selectedExt=%%~xF"
+if /I not "!selectedExt!"==".bat" (
+    call :PrintRed "Selected file must be a .bat file"
+    pause
+    goto menu
+)
 if not exist "!RUNNER_PATH!" (
     call :PrintRed "Missing background runner script: !RUNNER_PATH!"
     pause
