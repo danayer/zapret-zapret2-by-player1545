@@ -66,8 +66,8 @@ echo   ZAPRET2 SERVICE MANAGER v!LOCAL_VERSION!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
-echo      1. Create startup shortcut
-echo      2. Remove startup shortcut
+echo      1. Create Task Scheduler autostart
+echo      2. Remove Task Scheduler autostart
 echo      3. Check Status
 echo.
 echo   :: SETTINGS
@@ -132,28 +132,21 @@ exit /b
 :service_status
 cls
 chcp 437 > nul
+set "TASK_NAME=Zapret2_Autostart"
+set "taskFound=0"
+schtasks /query /TN "!TASK_NAME!" >nul 2>&1
+if !errorlevel!==0 (
+    set "taskFound=1"
+    call :PrintGreen "[OK] Task Scheduler autostart found"
+    echo Task name: !TASK_NAME!
+) else (
+    call :PrintRed "[X] Task Scheduler autostart NOT found"
+)
 
-:: Get Startup folder path
-for %%A in ("%APPDATA%") do set "STARTUP_PATH=%%~A\Microsoft\Windows\Start Menu\Programs\Startup"
-set "shortcutName=Zapret2_Startup.lnk"
-set "shortcutPath=!STARTUP_PATH!\!shortcutName!"
-
-:: Check startup shortcut
-if exist "!shortcutPath!" (
-    call :PrintGreen "[OK] Startup shortcut found"
-    echo Shortcut location: !shortcutPath!
-    
-    :: Try to get target of shortcut using PowerShell
-    for /f "delims=" %%T in ('powershell -NoProfile -Command "$shell = New-Object -ComObject WScript.Shell; $shortcut = $shell.CreateShortcut('!shortcutPath!'); Write-Output $shortcut.TargetPath" 2^>nul') do (
-        echo Shortcut target: %%T
-    )
-    
-    :: Get config name from registry
+if !taskFound!==1 (
     for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-zapret2-by-player1545 2^>nul') do (
         echo Config file: %%B
     )
-) else (
-    call :PrintRed "[X] Startup shortcut NOT found"
 )
 
 echo:
@@ -230,23 +223,34 @@ exit /b
 :service_remove
 cls
 chcp 65001 > nul
-
-:: Get Startup folder path
-for %%A in ("%APPDATA%") do set "STARTUP_PATH=%%~A\Microsoft\Windows\Start Menu\Programs\Startup"
-
-set "shortcutName=Zapret2_Startup.lnk"
-set "shortcutPath=!STARTUP_PATH!\!shortcutName!"
-
-:: Remove shortcut
-if exist "!shortcutPath!" (
-    del /f /q "!shortcutPath!"
+set "TASK_NAME=Zapret2_Autostart"
+set "taskRemoved=0"
+schtasks /query /TN "!TASK_NAME!" >nul 2>&1
+if !errorlevel!==0 (
+    schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
     if !errorlevel!==0 (
-        call :PrintGreen "Startup shortcut removed successfully"
+        set "taskRemoved=1"
+        call :PrintGreen "Task Scheduler autostart removed successfully"
     ) else (
-        call :PrintRed "Failed to delete shortcut"
+        call :PrintRed "Failed to remove Task Scheduler autostart"
     )
 ) else (
-    call :PrintYellow "No startup shortcut found"
+    call :PrintYellow "No Task Scheduler autostart found"
+)
+
+:: Backward compatibility: remove old Startup shortcut if present
+for %%A in ("%APPDATA%") do set "STARTUP_PATH=%%~A\Microsoft\Windows\Start Menu\Programs\Startup"
+set "shortcutName=Zapret2_Startup.lnk"
+set "shortcutPath=!STARTUP_PATH!\!shortcutName!"
+if exist "!shortcutPath!" (
+    del /f /q "!shortcutPath!" >nul 2>&1
+    if exist "!shortcutPath!" (
+        call :PrintYellow "Legacy startup shortcut found but not removed"
+    ) else (
+        if !taskRemoved!==0 (
+            call :PrintGreen "Legacy startup shortcut removed"
+        )
+    )
 )
 
 :: Stop any running winws2.exe processes
@@ -290,8 +294,8 @@ set "LISTS_PATH=%~dp0lists\"
 set "LUA_PATH=%~dp0lua\"
 set "WDFILTER_PATH=%~dp0windivert.filter\"
 
-:: Get Startup folder path
-for %%A in ("%APPDATA%") do set "STARTUP_PATH=%%~A\Microsoft\Windows\Start Menu\Programs\Startup"
+set "TASK_NAME=Zapret2_Autostart"
+set "RUNNER_PATH=%~dp0utils\run_hidden.vbs"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
@@ -317,32 +321,23 @@ if not defined selectedFile (
     goto menu
 )
 
-:: Create shortcut in Startup folder
-set "shortcutName=Zapret2_Startup.lnk"
-set "shortcutPath=!STARTUP_PATH!\!shortcutName!"
 set "targetPath=%~dp0!selectedFile!"
-
-:: Remove existing shortcut if present
-if exist "!shortcutPath!" (
-    del /f /q "!shortcutPath!"
+if not exist "!RUNNER_PATH!" (
+    call :PrintRed "Missing background runner script: !RUNNER_PATH!"
+    pause
+    goto menu
 )
 
-:: Create shortcut using PowerShell
-powershell -NoProfile -Command ^
-    "$WshShell = New-Object -ComObject WScript.Shell; " ^
-    "$Shortcut = $WshShell.CreateShortcut('!shortcutPath!'); " ^
-    "$Shortcut.TargetPath = '!targetPath!'; " ^
-    "$Shortcut.WorkingDirectory = '%~dp0'; " ^
-    "$Shortcut.WindowStyle = 7; " ^
-    "$Shortcut.Save()"
-
+set "TASK_ACTION=wscript.exe \"!RUNNER_PATH!\" \"!targetPath!\""
+schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
+schtasks /create /TN "!TASK_NAME!" /SC ONLOGON /TR "!TASK_ACTION!" /RL HIGHEST /F >nul 2>&1
 if !errorlevel!==0 (
     echo.
-    call :PrintGreen "Shortcut created successfully in Startup folder"
-    echo Shortcut path: !shortcutPath!
+    call :PrintGreen "Task Scheduler autostart created successfully"
+    echo Task name: !TASK_NAME!
 ) else (
     echo.
-    call :PrintRed "Failed to create shortcut"
+    call :PrintRed "Failed to create Task Scheduler autostart"
     pause
     goto menu
 )
@@ -358,9 +353,9 @@ call :tcp_enable
 
 echo.
 echo ========================================
-echo   Startup shortcut installed!
+echo   Task Scheduler autostart installed!
 echo   Config: !selectedFile!
-echo   Location: !STARTUP_PATH!
+echo   Task: !TASK_NAME!
 echo ========================================
 echo.
 echo The config will run automatically on Windows startup.
