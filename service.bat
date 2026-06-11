@@ -250,7 +250,7 @@ set "shortcutPath=!STARTUP_PATH!\!shortcutName!"
 if exist "!shortcutPath!" (
     del /f /q "!shortcutPath!" >nul 2>&1
     if exist "!shortcutPath!" (
-        call :PrintYellow "Legacy startup shortcut found but not removed"
+        call :PrintYellow "Legacy startup shortcut could not be removed (may be in use)"
         call :PrintYellow "Delete it manually if it is no longer needed"
     ) else (
         if !taskRemoved!==0 (
@@ -369,7 +369,7 @@ if not exist "!TASK_LAUNCHER_DIR!" (
 
 (
     echo @echo off
-    echo "!WSCRIPT_PATH!" "!RUNNER_PATH!" "!selectedFile!"
+    echo !WSCRIPT_PATH! "!RUNNER_PATH!" "!selectedFile!"
 ) > "!TASK_LAUNCHER_PATH!"
 if not exist "!TASK_LAUNCHER_PATH!" (
     call :PrintRed "Failed to create launcher script: !TASK_LAUNCHER_PATH!"
@@ -377,6 +377,7 @@ if not exist "!TASK_LAUNCHER_PATH!" (
     goto menu
 )
 
+:: Double quotes are intentionally escaped for `cmd /c` parsing in Task Scheduler /TR value.
 set "TASK_ACTION=%ComSpec% /c \"\"!TASK_LAUNCHER_PATH!\"\""
 schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
 set "TASK_ERROR_FILE=%~dp0utils\zapret_task_error.tmp"
