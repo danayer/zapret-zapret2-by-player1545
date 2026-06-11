@@ -251,7 +251,7 @@ if exist "!shortcutPath!" (
     del /f /q "!shortcutPath!" >nul 2>&1
     if exist "!shortcutPath!" (
         call :PrintYellow "Legacy startup shortcut found but not removed"
-        call :PrintYellow "Check file permissions or close apps that may lock the shortcut"
+        call :PrintYellow "Delete it manually if it is still not needed"
     ) else (
         if !taskRemoved!==0 (
             call :PrintGreen "Legacy startup shortcut removed"
@@ -302,6 +302,7 @@ set "WDFILTER_PATH=%~dp0windivert.filter\"
 
 set "TASK_NAME=Zapret2_Autostart"
 set "RUNNER_PATH=%~dp0utils\run_hidden.vbs"
+set "WSCRIPT_PATH=%SystemRoot%\System32\wscript.exe"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
@@ -344,8 +345,13 @@ if not exist "!RUNNER_PATH!" (
     pause
     goto menu
 )
+if not exist "!WSCRIPT_PATH!" (
+    call :PrintRed "Missing wscript.exe: !WSCRIPT_PATH!"
+    pause
+    goto menu
+)
 
-set "TASK_ACTION=wscript.exe \"!RUNNER_PATH!\" \"!targetPath!\""
+set "TASK_ACTION=!WSCRIPT_PATH! \"!RUNNER_PATH!\" \"!targetPath!\""
 schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
 schtasks /create /TN "!TASK_NAME!" /SC ONLOGON /TR "!TASK_ACTION!" /RL HIGHEST /F >nul 2>&1
 if !errorlevel!==0 (
