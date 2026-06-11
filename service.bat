@@ -251,7 +251,7 @@ if exist "!shortcutPath!" (
     del /f /q "!shortcutPath!" >nul 2>&1
     if exist "!shortcutPath!" (
         call :PrintYellow "Legacy startup shortcut found but not removed"
-        call :PrintYellow "Delete it manually if it is still not needed"
+        call :PrintYellow "Delete it manually if it is no longer needed"
     ) else (
         if !taskRemoved!==0 (
             call :PrintGreen "Legacy startup shortcut removed"
@@ -353,7 +353,9 @@ if not exist "!WSCRIPT_PATH!" (
 
 set "TASK_ACTION=!WSCRIPT_PATH! \"!RUNNER_PATH!\" \"!targetPath!\""
 schtasks /delete /TN "!TASK_NAME!" /F >nul 2>&1
-schtasks /create /TN "!TASK_NAME!" /SC ONLOGON /TR "!TASK_ACTION!" /RL HIGHEST /F >nul 2>&1
+set "TASK_ERROR_FILE=%TEMP%\zapret_task_error.txt"
+if exist "!TASK_ERROR_FILE!" del /f /q "!TASK_ERROR_FILE!" >nul 2>&1
+schtasks /create /TN "!TASK_NAME!" /SC ONLOGON /TR "!TASK_ACTION!" /RL HIGHEST /F >"!TASK_ERROR_FILE!" 2>&1
 if !errorlevel!==0 (
     echo.
     call :PrintGreen "Task Scheduler autostart created successfully"
@@ -361,9 +363,11 @@ if !errorlevel!==0 (
 ) else (
     echo.
     call :PrintRed "Failed to create Task Scheduler autostart"
+    if exist "!TASK_ERROR_FILE!" type "!TASK_ERROR_FILE!"
     pause
     goto menu
 )
+if exist "!TASK_ERROR_FILE!" del /f /q "!TASK_ERROR_FILE!" >nul 2>&1
 
 :: Save config name to registry
 for %%F in ("!file%choice%!") do (
