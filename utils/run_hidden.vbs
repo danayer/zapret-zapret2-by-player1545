@@ -37,8 +37,6 @@ Function IsAbsolutePath(path)
             IsAbsolutePath = True
             Exit Function
         End If
-    End If
-    If Len(path) >= 2 Then
         If Left(path, 2) = "\\" Then
             IsAbsolutePath = True
             Exit Function
