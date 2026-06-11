@@ -388,9 +388,9 @@ if !errorlevel!==0 (
     echo Task name: !TASK_NAME!
     schtasks /run /TN "!TASK_NAME!" >nul 2>&1
     if !errorlevel!==0 (
-        call :PrintYellow "[!] Could not start task immediately. It will run on next logon."
-    ) else (
         call :PrintGreen "[OK] Task started immediately"
+    ) else (
+        call :PrintYellow "[!] Could not start task immediately. It will run on next logon."
     )
 ) else (
     echo.
@@ -418,7 +418,8 @@ echo   Config: !selectedFile!
 echo   Task: !TASK_NAME!
 echo ========================================
 echo.
-echo The config will run automatically on Windows startup and was started now if possible.
+echo The config will run automatically on Windows startup.
+echo Immediate start was attempted and may require next logon if it failed.
 echo Make sure to run service.bat as Administrator at least once.
 echo.
 pause
